@@ -1,11 +1,34 @@
+const cookerParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+
 require('dotenv').config({ path: 'variables.env' });
 const createServer = require('./createServer');
 const db = require('./db');
 
 const server = createServer();
 
-// TODO Use express middleware to handle cookies (JWT)
-// TODO Use express middleware to handle current user
+server.express.use(cookerParser());
+
+// 1. Put the userId onto the request for further requests to access
+server.express.use((req, res, next) => {
+  const { token } = req.cookies;
+  if(token) {
+    const { userId } = jwt.verify(token, process.env.APP_SECRET);
+    req.userId = userId;
+  }
+  next();
+});
+
+// 2. Create a middleware that populates the user on the each request
+server.express.use(async (req, res, next) => {
+  if(!req.userId) return next();
+  const user = await db.query.user(
+    { where: { id: req.userId } },
+    '{id, permissions, name, email}'
+  );
+  req.user = user;
+  next();
+});
 
 server.start({
   cors: {
