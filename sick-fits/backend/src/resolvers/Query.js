@@ -7,8 +7,10 @@ const Query = {
   itemsConnection: forwardTo('db'),
   me(parent, args, ctx, info) {
     // Check if there is a current user on request
-    if(ctx.request.user){
-      return ctx.request.user
+    if(ctx.request.userId){
+      return ctx.db.query.user({
+        where: { id: ctx.request.userId }
+      }, info);
     }
     return null;
   },
